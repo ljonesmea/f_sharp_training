@@ -1,7 +1,7 @@
 module f_sharp_training
-
 open NUnit.Framework
 open Swensen.Unquote
+open SafetyFirst
 open FSharpx
 
 let euler1 upperBound =
@@ -21,41 +21,39 @@ let euler3 num =
             factorFind (num/startFactor) startFactor (startFactor::factorList)
         else
             factorFind  num (startFactor+1) factorList //
-
     let primeList: int list = factorFind num 2 []
-    List.max (primeList) 
-    
+    List.max' (primeList) 
 
 let euler8 (str: string) (window: int)  =
     // find the largest product of n sized window from given int
-    let output = 
-        str 
-        |> Seq.toList
-        |> List.map (fun x -> int x - int '0') 
-        |> List.windowed window 
-        |> List.map (List.reduce (*) ) 
-        |> List.max
+    result{
+        let! windowedString = 
+            str 
+            |> Seq.toList
+            |> List.map (fun x -> System.Char.GetNumericValue x) 
+            |> List.windowed' window
+            |> Result.mapError string 
+        
+        let nonEmptyWindowToList = [for i in windowedString do yield List.NonEmpty.toList i]
+        let windowListToInt = [for i in nonEmptyWindowToList do yield [for j in i do yield System.Convert.ToInt32 j]]
+        let windowProducts = [for i in windowListToInt do yield List.fold(*) 1 i]
 
-    output 
+        return! List.max'(windowProducts) |> Result.mapError string 
+    }
+
+let leetcode3 (string: string)= 
+    let isEntirelyDistinct list = (List.length list) = (List.distinct list|> List.length)
     
-
-let leetcode3 (str: string) =
-    //find largest window of string w/o repeating characters
-    let listOfChars = str|> String.toCharArray |> Array.toList
-    let uniqueChars =  str |> Seq.toList |> List.distinct
-    let firstIndexes = [for i in uniqueChars do yield List.findIndex ((=)i) listOfChars]
-    let mappedFirstIndexes = List.zip uniqueChars firstIndexes
-    let secondIndexes  = [
-        for (a,b) in mappedFirstIndexes do yield (match List.tryFindIndex ((=)a) listOfChars[(b+1)..] with
-                                                    | Some c -> (c + b) 
-                                                    | None -> b)]
-    let mapAllIndexes = List.zip mappedFirstIndexes secondIndexes
-    let finalMap = [for ((a,b),c) in mapAllIndexes do yield (a,b,c,c-b)]
-    let maxParams = List.sortByDescending (fun (a, b, c, d) -> d) finalMap |> List.head
-    let generateString (a,b,c,d) = str[b..c]
-    let output = generateString maxParams
-
-    output
+    let listOfChars = string |> Seq.toList
+    let lengthOfList = List.length listOfChars
+    let windowSizes = [1..lengthOfList]
+    
+    let possibleWindows = [for i in windowSizes do yield List.windowed i listOfChars] |> List.concat
+    let validWindows =  List.filter isEntirelyDistinct possibleWindows
+    
+    match List.last' validWindows with
+        | Ok x -> x.Length
+        | Error x -> 0
 
 let advent2 (input: string) = 
     // calculate score for a given strategy
@@ -75,13 +73,9 @@ let advent2 (input: string) =
     score
 
 
-[<SetUp>]
-let Setup () =
-    ()
-
 [<Test>]
 let Test1 () =
-    test <@euler3 20 = 5 @>
+    test <@euler3 20 = Ok 5 @> 
 
 [<Test>]
 let Test2 () =
@@ -105,11 +99,11 @@ let Test2 () =
         84580156166097919133875499200524063689912560717606\
         05886116467109405077541002256983155200055935729725\
         71636269561882670428252483600823257530420752963450" 
-    test <@euler8 testString 4 = 5832 @> 
+    test <@euler8 testString 4 = Ok 5832 @>  
 
 [<Test>]
 let Test3 () =
-    test <@leetcode3 "abdcei4ljabdcdefg6ae4"  = "4ljabdcdefg6ae" @> 
+    test <@ leetcode3 "abcabcbb" = 3 @>
 
 [<Test>]
 let Test4 () =
