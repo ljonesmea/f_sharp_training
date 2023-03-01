@@ -4,6 +4,22 @@ open Swensen.Unquote
 open SafetyFirst
 open FSharpx
 
+// Type-setting for Advent Code 2022 Day 2 Solution
+type Selection = 
+    | Rock
+    | Paper
+    | Scissors
+
+type GameStatus = 
+    | Win 
+    | Lose
+    | Draw
+
+type Round = {Opponent: Selection; You: Selection}
+
+
+// All Problem Solutions
+
 let euler1 upperBound =
     //example walkthrough
     let input = [1 .. (upperBound-1)]
@@ -42,6 +58,7 @@ let euler8 (str: string) (window: int)  =
     }
 
 let leetcode3 (string: string)= 
+    //find the longest substring without repeating characters
     let isEntirelyDistinct list = (List.length list) = (List.distinct list|> List.length)
     
     let listOfChars = string |> Seq.toList
@@ -56,22 +73,45 @@ let leetcode3 (string: string)=
         | Error x -> 0
 
 let advent2 (input: string) = 
-    // calculate score for a given strategy
+    // https://adventofcode.com/2022/day/2
     let rounds = input.Split('\n') |> Array.map (fun elem -> (elem[0], elem[1]))
-    let score = List.sum [for i in rounds -> match i with
-                                                    | ('A','Y') -> 8 
-                                                    | ('A','X') -> 4
-                                                    | ('A','Z') -> 3
-                                                    | ('B','Y') -> 5
-                                                    | ('B','X') -> 1
-                                                    | ('B','Z') -> 9
-                                                    | ('C','Y') -> 2
-                                                    | ('C','X') -> 7
-                                                    | ('C','Z') -> 6
-                                                    | (_,_) -> 3]
-                            
-    score
 
+    let parseRound (selectionSet:char*char) = 
+
+        let yourSelection = match snd(selectionSet) with
+                            | 'X' -> Rock
+                            | 'Y' -> Paper
+                            | 'Z' -> Scissors
+                            | _ -> Rock // is there a way to do with this without a random wildcard?
+
+        
+        let opponentSelection = match fst(selectionSet) with
+                                | 'A' -> Rock
+                                | 'B' -> Paper
+                                | 'C' -> Scissors
+                                | _ -> Rock // is there a way to do with this without a random wildcard?
+        
+        {Opponent = opponentSelection;
+        You =  yourSelection}
+
+    let totalScore (round:Round) =   
+        let selectionScore = match round.You with
+                                | Rock -> 1
+                                | Paper -> 2
+                                | Scissors -> 3
+        
+        let roundScore = match (round.You, round.Opponent) with
+                            | Rock, Scissors -> 6
+                            | Paper, Rock -> 6
+                            | Scissors, Paper -> 6
+                            | you, opponent when you = opponent -> 3
+                            | _ -> 0
+        
+        selectionScore + roundScore
+
+    let scoreTab = [for i in rounds do yield parseRound i |> totalScore]
+
+    List.sum scoreTab
 
 [<Test>]
 let Test1 () =
