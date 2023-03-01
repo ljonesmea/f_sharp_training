@@ -78,18 +78,18 @@ let advent2 (input: string) =
 
     let parseRound (selectionSet:char*char) = 
 
+        let opponentSelection = match fst(selectionSet) with
+                                | 'A' -> Rock
+                                | 'B' -> Paper
+                                | 'C' -> Scissors
+                                | _ -> Rock // is there a way to do with this without a random wildcard?
+
         let yourSelection = match snd(selectionSet) with
                             | 'X' -> Rock
                             | 'Y' -> Paper
                             | 'Z' -> Scissors
                             | _ -> Rock // is there a way to do with this without a random wildcard?
 
-        
-        let opponentSelection = match fst(selectionSet) with
-                                | 'A' -> Rock
-                                | 'B' -> Paper
-                                | 'C' -> Scissors
-                                | _ -> Rock // is there a way to do with this without a random wildcard?
         
         {Opponent = opponentSelection;
         You =  yourSelection}
